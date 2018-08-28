@@ -12,9 +12,13 @@ int const min_x_coord{0};
 int const max_x_coord{1024};
 int const min_y_coord{0};
 int const max_y_coord{768};
+int const sprite_size{5};
+int const pixel_update{3};
 
 //maximum amount of food at once on screen
 int const max_food{3};
+
+bool is_growing{false};
 
 // MODEL DATA DEFINITIONS
 
@@ -58,8 +62,8 @@ struct Model {
 // VIEW DATA DEFINITIONS
 
 struct View {
-    Circle_sprite food_sprite{5, Color::medium_magenta()};
-    Circle_sprite snake_sprite{5, Color::medium_green()};
+    Circle_sprite food_sprite{sprite_size, Color::medium_magenta()};
+    Circle_sprite snake_sprite{sprite_size, Color::medium_green()};
 };
 
 struct Simple_snake : Abstract_game {
@@ -74,7 +78,6 @@ struct Simple_snake : Abstract_game {
 
     // Controller
     bool game_start{true};
-    bool is_growing{false};
     bool is_paused{false};
     void on_key(Key key) override;
     void on_frame(double dt) override;
@@ -86,6 +89,7 @@ int main() {
 
 // FUNCTION DEFINITIONS FOR MODEL
 
+// ~~~MODEL~~~
 void Model::add_random_food(Random& rng) {
     while (food.locs.size() < max_food) {
         food.locs.push_back(Food::random(rng, min_x_coord, max_x_coord,
@@ -102,6 +106,7 @@ void Model::update() {
     snake.update();
 }
 
+// ~~~SNAKE~~~
 void Snake::update() {
 
     Basic_position<int> new_head = segments.front();
@@ -109,22 +114,22 @@ void Snake::update() {
     switch (dir) {
         case Direction::down:
             segments.pop_back();
-            new_head.y += 3;
+            new_head.y += pixel_update;
             segments.insert(segments.begin(), new_head);
             break;
         case Direction::left:
             segments.pop_back();
-            new_head.x -= 3;
+            new_head.x -= pixel_update;
             segments.insert(segments.begin(), new_head);
             break;
         case Direction::up:
             segments.pop_back();
-            new_head.y -= 3;
+            new_head.y -= pixel_update;
             segments.insert(segments.begin(), new_head);
             break;
         case Direction::right:
             segments.pop_back();
-            new_head.x += 3;
+            new_head.x += pixel_update;
             segments.insert(segments.begin(), new_head);
             break;
     }
@@ -133,7 +138,7 @@ void Snake::update() {
 void Snake::grow() {
     if (is_growing) {
         Basic_position<int> new_head = segments.back();
-        update();
+//        update();
         segments.push_back(new_head);
     }
 }
@@ -149,6 +154,7 @@ Basic_position<int> Snake::random(
     return pos;
 }
 
+// ~~~FOOD~~~
 Basic_position<int> Food::random(Random& rng,
                                  int min_x, int max_x,
                                  int min_y, int max_y)
