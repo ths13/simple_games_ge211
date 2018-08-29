@@ -13,18 +13,20 @@ int const max_x_coord{1024};
 int const min_y_coord{0};
 int const max_y_coord{768};
 int const sprite_size{5};
-int const pixel_update{3};
+int const collision_size{3};
+int const pixel_update{10};
+double last_update{0};
+double const reset_update{0.05};
+bool add_food{false};
+bool game_over{false};
 
 //maximum amount of food at once on screen
 int const max_food{3};
 
-bool is_growing{false};
 
 // MODEL DATA DEFINITIONS
 
 struct Food {
-    using Position = Basic_position<int>;
-
     vector<Position> locs;
 
     static Position random(
@@ -34,11 +36,9 @@ struct Food {
 };
 
 struct Snake {
-    using Position = Basic_position<int>;
-
     enum class Direction { up, left, down, right };
 
-    Direction dir = Snake::Direction::left;
+    Direction dir = Direction::left;
     vector<Position> segments;
 
     static Position random(
@@ -47,7 +47,6 @@ struct Snake {
             int min_y, int max_y);
     void grow();
     void update();
-
 };
 
 struct Model {
@@ -56,6 +55,9 @@ struct Model {
 
     void add_random_food(Random&);
     void add_snake_start(Random&);
+    bool food_collision();
+    bool self_collision();
+    bool out_of_bounds();
     void update();
 };
 
@@ -64,6 +66,7 @@ struct Model {
 struct View {
     Circle_sprite food_sprite{sprite_size, Color::medium_magenta()};
     Circle_sprite snake_sprite{sprite_size, Color::medium_green()};
+    Circle_sprite lose_sprite{sprite_size, Color::medium_red()};
 };
 
 struct Simple_snake : Abstract_game {
@@ -102,6 +105,40 @@ void Model::add_snake_start(Random& rng) {
                                            min_y_coord, max_y_coord));
 }
 
+bool Model::food_collision() {
+    Position snake_head = snake.segments.front();
+    for (int i = 0; i < food.locs.size(); ++i) {
+        double x_dist = food.locs[i].x - snake_head.x;
+        double y_dist = food.locs[i].y - snake_head.y;
+
+        // circle intersection formula, based on `collision_size` radius
+        if ( sqrt((x_dist * x_dist) + (y_dist * y_dist)) < (collision_size * collision_size) ) {
+            food.locs.erase(food.locs.begin() + i);
+            add_food = true;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Model::self_collision() {
+    Position snake_head = snake.segments.front();
+    for (int i = 1; i < snake.segments.size(); ++i) {
+        if ((snake.segments[i].x == snake_head.x) && (snake.segments[i].y == snake_head.y)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Model::out_of_bounds() {
+    Position snake_head = snake.segments.front();
+    return (snake_head.x < min_x_coord) ||
+           (snake_head.x > max_x_coord) ||
+           (snake_head.y < min_y_coord) ||
+           (snake_head.y > max_y_coord);
+}
+
 void Model::update() {
     snake.update();
 }
@@ -109,7 +146,7 @@ void Model::update() {
 // ~~~SNAKE~~~
 void Snake::update() {
 
-    Basic_position<int> new_head = segments.front();
+    Position new_head = segments.front();
 
     switch (dir) {
         case Direction::down:
@@ -136,28 +173,26 @@ void Snake::update() {
 }
 
 void Snake::grow() {
-    if (is_growing) {
-        Basic_position<int> new_head = segments.back();
-//        update();
-        segments.push_back(new_head);
-    }
+    Position new_head = segments.back();
+    segments.push_back(new_head);
 }
 
-Basic_position<int> Snake::random(
+Position Snake::random(
         Random& rng,
         int min_x, int max_x,
         int min_y, int max_y)
 {
-    int x_pos = rng.between(min_x, max_x);
-    int y_pos = rng.between(min_y, max_y);
+    int x_pos = rng.between(300, 600);
+    int y_pos = rng.between(200, 400);
     Position pos{x_pos, y_pos};
     return pos;
 }
 
 // ~~~FOOD~~~
-Basic_position<int> Food::random(Random& rng,
-                                 int min_x, int max_x,
-                                 int min_y, int max_y)
+Position Food::random(
+        Random& rng,
+        int min_x, int max_x,
+        int min_y, int max_y)
 {
     int x_pos = rng.between(min_x, max_x);
     int y_pos = rng.between(min_y, max_y);
@@ -172,11 +207,18 @@ Dimensions Simple_snake::initial_window_dimensions() const {
 }
 
 void Simple_snake::draw(Sprite_set &sprites) {
-    for (Basic_position<int> const& loc : model.food.locs) {
+    for (Position const& loc : model.food.locs) {
         sprites.add_sprite(view.food_sprite, loc);
     }
-    for (Basic_position<int> const& pos : model.snake.segments) {
-        sprites.add_sprite(view.snake_sprite, pos);
+    if (!game_over) {
+        for (Position const &pos : model.snake.segments) {
+            sprites.add_sprite(view.snake_sprite, pos);
+        }
+    }
+    else {
+        for (Position const &pos : model.snake.segments) {
+            sprites.add_sprite(view.lose_sprite, pos);
+        }
     }
 }
 
@@ -201,25 +243,36 @@ void Simple_snake::on_key(Key key) {
     } else if (key == Key::right() && cur_dir != Snake::Direction::left) {
         model.snake.dir = Snake::Direction::right;
     }
-
-    //temporary way to test how the snake grows
-    if (key == Key::code('g')) {
-        model.snake.grow();
-        is_growing = !is_growing;
-    }
-
 }
 
 void Simple_snake::on_frame(double dt)
 {
-    //currently not using `dt` in updating
-
-    //initialize the game state
-    if (game_start) {
-        model.add_random_food(get_random());
-        model.add_snake_start(get_random());
-        game_start = !game_start;
+    if (last_update - dt > 0) {
+        last_update -= dt;
     }
-    if (!is_paused)
-        model.update();
+    else {
+        last_update = reset_update;
+
+        //initialize the game state
+        if (game_start) {
+            model.add_random_food(get_random());
+            model.add_snake_start(get_random());
+            game_start = !game_start;
+        }
+
+        if ((!is_paused) && (!game_over))
+            model.update();
+
+        if (model.out_of_bounds() || model.self_collision()) {
+            game_over = true;
+        }
+
+        if (model.food_collision())
+            model.snake.grow();
+
+        if (add_food) {
+            add_food = false;
+            model.add_random_food(get_random());
+        }
+    }
 }
