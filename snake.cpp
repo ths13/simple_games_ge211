@@ -121,7 +121,7 @@ bool Model::food_collision() {
 bool Model::self_collision() {
     Position snake_head = snake.segments.front();
     for (int i = 1; i < snake.segments.size(); ++i) {
-        if ((snake.segments[i].x == snake_head.x) && (snake.segments[i].y == snake_head.y)) {
+        if (snake.segments[i] == snake_head) {
             return true;
         }
     }
