@@ -7,11 +7,11 @@ using namespace std;
 
 // MODEL CONSTANTS
 
-Dimensions const scene_dimensions{1024, 768};
-int const min_x_coord{0};
-int const max_x_coord{scene_dimensions.width};
-int const min_y_coord{0};
-int const max_y_coord{scene_dimensions.height};
+Rectangle const scene_range{0, 0, 1024, 768};
+int const min_x_coord{scene_range.x};
+int const max_x_coord{scene_range.bottom_right().x};
+int const min_y_coord{scene_range.y};
+int const max_y_coord{scene_range.bottom_right().y};
 int const sprite_size{5};
 int const collision_size{3};
 int const pixel_update{10};
@@ -197,7 +197,7 @@ Position Food::random(
 // FUNCTION DEFINITIONS FOR VIEW
 
 Dimensions Simple_snake::initial_window_dimensions() const {
-    return scene_dimensions;
+    return scene_range.dimensions();
 }
 
 void Simple_snake::draw(Sprite_set &sprites) {
