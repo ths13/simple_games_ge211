@@ -178,15 +178,9 @@ void Simple_snake::draw(Sprite_set &sprites) {
     for (Position const& loc : model.food.locs) {
         sprites.add_sprite(view.food_sprite, loc);
     }
-    if (!game_over) {
-        for (Position const &pos : model.snake.segments) {
-            sprites.add_sprite(view.snake_sprite, pos);
-        }
-    }
-    else {
-        for (Position const &pos : model.snake.segments) {
-            sprites.add_sprite(view.lose_sprite, pos);
-        }
+    Sprite const& segment = game_over? view.lose_sprite : view .snake_sprite;
+    for (Position const &pos : model.snake.segments) {
+        sprites.add_sprite(segment, pos);
     }
 }
 
