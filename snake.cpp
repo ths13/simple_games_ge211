@@ -8,13 +8,12 @@ using namespace std;
 // MODEL CONSTANTS
 
 Rectangle const scene_range{0, 0, 1024, 768};
-int const min_x_coord{scene_range.x};
-int const max_x_coord{scene_range.bottom_right().x};
-int const min_y_coord{scene_range.y};
-int const max_y_coord{scene_range.bottom_right().y};
-int const sprite_size{5};
-int const collision_size{3};
-int const pixel_update{10};
+int const half_sprite_size{5};
+int const sprite_size{2 * half_sprite_size};
+int const min_x_coord{0};
+int const max_x_coord{scene_range.width / sprite_size - 1};
+int const min_y_coord{0};
+int const max_y_coord{scene_range.height / sprite_size - 1};
 double last_update{0};
 double const reset_update{0.05};
 bool add_food{false};
@@ -55,9 +54,12 @@ struct Model {
 // VIEW DATA DEFINITIONS
 
 struct View {
-    Circle_sprite food_sprite{sprite_size, Color::medium_magenta()};
-    Circle_sprite snake_sprite{sprite_size, Color::medium_green()};
-    Circle_sprite lose_sprite{sprite_size, Color::medium_red()};
+    Circle_sprite food_sprite{half_sprite_size, Color::medium_magenta()};
+    Circle_sprite snake_sprite{half_sprite_size, Color::medium_green()};
+    Circle_sprite lose_sprite{half_sprite_size, Color::medium_red()};
+
+    // Maps the virtual position of a sprite to its physical pixel position.
+    static Position map_sprite(Position virtual_position);
 };
 
 struct Simple_snake : Abstract_game {
@@ -105,11 +107,7 @@ void Model::add_snake_start(Random& rng) {
 bool Model::food_collision() {
     Position snake_head = snake.segments.front();
     for (int i = 0; i < food.locs.size(); ++i) {
-        double x_dist = food.locs[i].x - snake_head.x;
-        double y_dist = food.locs[i].y - snake_head.y;
-
-        // circle intersection formula, based on `collision_size` radius
-        if ( sqrt((x_dist * x_dist) + (y_dist * y_dist)) < (collision_size * collision_size) ) {
+        if ( food.locs[i] == snake_head ) {
             food.locs.erase(food.locs.begin() + i);
             add_food = true;
             return true;
@@ -148,16 +146,16 @@ void Snake::update() {
     segments.pop_back();
     switch (dir) {
         case Direction::down:
-            new_head.y += pixel_update;
+            new_head.y += 1;
             break;
         case Direction::left:
-            new_head.x -= pixel_update;
+            new_head.x -= 1;
             break;
         case Direction::up:
-            new_head.y -= pixel_update;
+            new_head.y -= 1;
             break;
         case Direction::right:
-            new_head.x += pixel_update;
+            new_head.x += 1;
             break;
     }
     segments.insert(segments.begin(), new_head);
@@ -170,17 +168,23 @@ void Snake::grow() {
 
 // FUNCTION DEFINITIONS FOR VIEW
 
+Position View::map_sprite(Position vp)
+{
+    return {scene_range.x + sprite_size * vp.x,
+            scene_range.y + sprite_size * vp.y};
+}
+
 Dimensions Simple_snake::initial_window_dimensions() const {
     return scene_range.dimensions();
 }
 
 void Simple_snake::draw(Sprite_set &sprites) {
     for (Position const& loc : model.food.locs) {
-        sprites.add_sprite(view.food_sprite, loc);
+        sprites.add_sprite(view.food_sprite, View::map_sprite(loc));
     }
     Sprite const& segment = game_over? view.lose_sprite : view .snake_sprite;
     for (Position const &pos : model.snake.segments) {
-        sprites.add_sprite(segment, pos);
+        sprites.add_sprite(segment, View::map_sprite(pos));
     }
 }
 
