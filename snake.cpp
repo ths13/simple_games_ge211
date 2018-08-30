@@ -148,28 +148,22 @@ void Snake::update() {
 
     Position new_head = segments.front();
 
+    segments.pop_back();
     switch (dir) {
         case Direction::down:
-            segments.pop_back();
             new_head.y += pixel_update;
-            segments.insert(segments.begin(), new_head);
             break;
         case Direction::left:
-            segments.pop_back();
             new_head.x -= pixel_update;
-            segments.insert(segments.begin(), new_head);
             break;
         case Direction::up:
-            segments.pop_back();
             new_head.y -= pixel_update;
-            segments.insert(segments.begin(), new_head);
             break;
         case Direction::right:
-            segments.pop_back();
             new_head.x += pixel_update;
-            segments.insert(segments.begin(), new_head);
             break;
     }
+    segments.insert(segments.begin(), new_head);
 }
 
 void Snake::grow() {
