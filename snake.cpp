@@ -247,11 +247,12 @@ void Simple_snake::on_key(Key key) {
 
 void Simple_snake::on_frame(double dt)
 {
-    if (last_update - dt > 0) {
-        last_update -= dt;
+    double time_remaining = last_update - dt;
+    if (time_remaining > 0) {
+        last_update = time_remaining;
     }
     else {
-        last_update = reset_update;
+        last_update = reset_update + time_remaining;
 
         //initialize the game state
         if (game_start) {
