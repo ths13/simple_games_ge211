@@ -9,9 +9,9 @@ using namespace std;
 
 Dimensions const scene_dimensions{1024, 768};
 int const min_x_coord{0};
-int const max_x_coord{1024};
+int const max_x_coord{scene_dimensions.width};
 int const min_y_coord{0};
-int const max_y_coord{768};
+int const max_y_coord{scene_dimensions.height};
 int const sprite_size{5};
 int const collision_size{3};
 int const pixel_update{10};
