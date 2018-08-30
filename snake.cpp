@@ -28,11 +28,6 @@ int const max_food{3};
 
 struct Food {
     vector<Position> locs;
-
-    static Position random(
-            Random&,
-            int min_x, int max_x,
-            int min_y, int max_y);
 };
 
 struct Snake {
@@ -41,10 +36,6 @@ struct Snake {
     Direction dir = Direction::left;
     vector<Position> segments;
 
-    static Position random(
-            Random&,
-            int min_x, int max_x,
-            int min_y, int max_y);
     void grow();
     void update();
 };
@@ -86,6 +77,12 @@ struct Simple_snake : Abstract_game {
     void on_frame(double dt) override;
 };
 
+// HELPERS
+
+Position random_position(Random&, int min_x, int max_x, int min_y, int max_y);
+
+// MAIN
+
 int main() {
     Simple_snake{}.run();
 }
@@ -95,14 +92,14 @@ int main() {
 // ~~~MODEL~~~
 void Model::add_random_food(Random& rng) {
     while (food.locs.size() < max_food) {
-        food.locs.push_back(Food::random(rng, min_x_coord, max_x_coord,
-                                         min_y_coord, max_y_coord));
+        food.locs.push_back(random_position(rng, min_x_coord, max_x_coord,
+                                            min_y_coord, max_y_coord));
     }
 }
 
 void Model::add_snake_start(Random& rng) {
-    snake.segments.push_back(Snake::random(rng, min_x_coord, max_x_coord,
-                                           min_y_coord, max_y_coord));
+    snake.segments.push_back(random_position(rng, min_x_coord, max_x_coord,
+                                             min_y_coord, max_y_coord));
 }
 
 bool Model::food_collision() {
@@ -169,29 +166,6 @@ void Snake::update() {
 void Snake::grow() {
     Position new_head = segments.back();
     segments.push_back(new_head);
-}
-
-Position Snake::random(
-        Random& rng,
-        int min_x, int max_x,
-        int min_y, int max_y)
-{
-    int x_pos = rng.between(300, 600);
-    int y_pos = rng.between(200, 400);
-    Position pos{x_pos, y_pos};
-    return pos;
-}
-
-// ~~~FOOD~~~
-Position Food::random(
-        Random& rng,
-        int min_x, int max_x,
-        int min_y, int max_y)
-{
-    int x_pos = rng.between(min_x, max_x);
-    int y_pos = rng.between(min_y, max_y);
-    Position pos{x_pos, y_pos};
-    return pos;
 }
 
 // FUNCTION DEFINITIONS FOR VIEW
@@ -270,4 +244,10 @@ void Simple_snake::on_frame(double dt)
             model.add_random_food(get_random());
         }
     }
+}
+
+Position random_position(Random& rng,
+                         int min_x, int max_x, int min_y, int max_y)
+{
+    return {rng.between(min_x, max_x), rng.between(min_y, max_y)};
 }
