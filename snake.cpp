@@ -1,6 +1,7 @@
 #include <ge211.h>
 
 #include <vector>
+#include <deque>
 
 using namespace ge211;
 using namespace std;
@@ -29,7 +30,7 @@ struct Snake {
     enum class Direction { up, left, down, right };
 
     Direction dir = Direction::left;
-    vector<Position> segments;
+    deque<Position> segments;
 
     void grow();
     void update();
@@ -140,8 +141,6 @@ void Model::update() {
 void Snake::update() {
 
     Position new_head = segments.front();
-
-    segments.pop_back();
     switch (dir) {
         case Direction::down:
             new_head.y += 1;
@@ -156,7 +155,8 @@ void Snake::update() {
             new_head.x += 1;
             break;
     }
-    segments.insert(segments.begin(), new_head);
+    segments.pop_back();
+    segments.push_front(new_head);
 }
 
 void Snake::grow() {
