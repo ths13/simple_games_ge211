@@ -14,10 +14,6 @@ int const min_x_coord{0};
 int const max_x_coord{scene_range.width / sprite_size - 1};
 int const min_y_coord{0};
 int const max_y_coord{scene_range.height / sprite_size - 1};
-double last_update{0};
-double const reset_update{0.05};
-bool add_food{false};
-bool game_over{false};
 
 //maximum amount of food at once on screen
 int const max_food{3};
@@ -59,7 +55,7 @@ struct View {
     Circle_sprite lose_sprite{half_sprite_size, Color::medium_red()};
 
     // Maps the virtual position of a sprite to its physical pixel position.
-    static Position map_sprite(Position virtual_position);
+    static Position map_sprite(Position vp);
 };
 
 struct Simple_snake : Abstract_game {
@@ -73,8 +69,11 @@ struct Simple_snake : Abstract_game {
     void draw(Sprite_set& sprites) override;
 
     // Controller
-    bool game_start{true};
+    bool game_over{false};
     bool is_paused{false};
+    double last_update{0};
+    double const reset_update{0.05};
+    void on_start() override;
     void on_key(Key key) override;
     void on_frame(double dt) override;
 };
@@ -109,7 +108,6 @@ bool Model::food_collision() {
     for (int i = 0; i < food.locs.size(); ++i) {
         if ( food.locs[i] == snake_head ) {
             food.locs.erase(food.locs.begin() + i);
-            add_food = true;
             return true;
         }
     }
@@ -182,7 +180,7 @@ void Simple_snake::draw(Sprite_set &sprites) {
     for (Position const& loc : model.food.locs) {
         sprites.add_sprite(view.food_sprite, View::map_sprite(loc));
     }
-    Sprite const& segment = game_over? view.lose_sprite : view .snake_sprite;
+    Sprite const& segment = game_over? view.lose_sprite : view.snake_sprite;
     for (Position const &pos : model.snake.segments) {
         sprites.add_sprite(segment, View::map_sprite(pos));
     }
@@ -211,35 +209,31 @@ void Simple_snake::on_key(Key key) {
     }
 }
 
+void Simple_snake::on_start() {
+    model.add_random_food(get_random());
+    model.add_snake_start(get_random());
+}
+
 void Simple_snake::on_frame(double dt)
 {
-    double time_remaining = last_update - dt;
-    if (time_remaining > 0) {
-        last_update = time_remaining;
-    }
-    else {
-        last_update = reset_update + time_remaining;
+    if (!is_paused) {
+        double time_remaining = last_update - dt;
+        if (time_remaining > 0) {
+            last_update = time_remaining;
+        } else {
+            last_update = reset_update + time_remaining;
 
-        //initialize the game state
-        if (game_start) {
-            model.add_random_food(get_random());
-            model.add_snake_start(get_random());
-            game_start = !game_start;
-        }
+            if ((!is_paused) && (!game_over))
+                model.update();
 
-        if ((!is_paused) && (!game_over))
-            model.update();
+            if (model.out_of_bounds() || model.self_collision()) {
+                game_over = true;
+            }
 
-        if (model.out_of_bounds() || model.self_collision()) {
-            game_over = true;
-        }
-
-        if (model.food_collision())
-            model.snake.grow();
-
-        if (add_food) {
-            add_food = false;
-            model.add_random_food(get_random());
+            if (model.food_collision()) {
+                model.snake.grow();
+                model.add_random_food(get_random());
+            }
         }
     }
 }
