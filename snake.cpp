@@ -17,7 +17,7 @@ int const min_y_coord{0};
 int const max_y_coord{scene_range.height / sprite_size - 1};
 
 //maximum amount of food at once on screen
-int const max_food{3};
+int const max_food{10000};
 
 
 // MODEL DATA DEFINITIONS
@@ -102,6 +102,7 @@ void Model::add_random_food(Random& rng) {
 void Model::add_snake_start(Random& rng) {
     snake.segments.push_back(random_position(rng, min_x_coord, max_x_coord,
                                              min_y_coord, max_y_coord));
+
 }
 
 bool Model::food_collision() {
