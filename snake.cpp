@@ -17,7 +17,7 @@ int const min_y_coord{0};
 int const max_y_coord{scene_range.height / sprite_size - 1};
 
 //maximum amount of food at once on screen
-int const max_food{10000};
+int const max_food{100};
 
 
 // MODEL DATA DEFINITIONS
